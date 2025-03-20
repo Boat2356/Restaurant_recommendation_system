@@ -1,0 +1,7 @@
+streamlit
+pandas
+folium
+scikit-surprise
+numpy
+streamlit-folium
+supabase

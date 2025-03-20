@@ -1,0 +1,19 @@
+# Ignore dump_gs folder
+dump_gs/
+
+# Ignore dump_model folder
+dump_model/dump_KNNBaseline_file.pkl
+dump_model/dump_KNNBasic_file.pkl
+dump_model/dump_KNNWithMeans_file.pkl
+dump_model/dump_KNNWithZScore_file.pkl
+dump_model/dump_NMF_file.pkl
+dump_model/dump_SVDpp_file.pkl
+
+# Ignore .env file
+.env
+
+# Ignore .toml file
+*.toml
+
+# Ignore data folder
+data/
