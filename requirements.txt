@@ -5,3 +5,4 @@ scikit-surprise
 numpy
 streamlit-folium
 supabase
+cython

@@ -11,7 +11,10 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-COPY . .
+RUN git clone https://github.com/Boat2356/Restaurant_recommendation_system.git .
+
+# Copy the secrets.toml into the container
+COPY ./.streamlit/secrets.toml /app/.streamlit/secrets.toml
 
 RUN pip3 install --no-cache-dir -r requirements.txt
 
