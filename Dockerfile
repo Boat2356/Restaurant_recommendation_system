@@ -11,6 +11,12 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# ติดตั้ง Cython และ NumPy ก่อน
+RUN pip install --no-cache-dir numpy cython scipy joblib
+
+# ติดตั้ง surprise จาก GitHub โดยตรง (ไม่ต้องใช้ setup.py)
+RUN pip install --no-cache-dir scikit-surprise
+
 RUN git clone https://github.com/Boat2356/Restaurant_recommendation_system.git .
 
 # Copy the secrets.toml into the container
