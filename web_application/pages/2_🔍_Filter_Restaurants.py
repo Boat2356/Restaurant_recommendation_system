@@ -3,10 +3,10 @@ import pandas as pd
 from supabase import create_client, Client
 
 # ดึง API key จากไฟล์ secret.toml
-supabase_url = st.secrets["SUPABASE_URL"]
-supabase_key = st.secrets["SUPABASE_KEY"]
+# supabase_url = st.secrets["SUPABASE_URL"]
+# supabase_key = st.secrets["SUPABASE_KEY"]
 
-supabase: Client = create_client(supabase_url, supabase_key)
+# supabase: Client = create_client(supabase_url, supabase_key)
 
 # Page setup
 st.set_page_config(
@@ -17,17 +17,33 @@ st.set_page_config(
 st.title("🔍 Filter Restaurants")
 st.sidebar.success("Select your preferred filters")
 
+# @st.cache_data
+# def load_data_from_db():
+#     response_restaurants = (supabase.table("restaurants").select("*").execute())    
+#     data = pd.DataFrame(response_restaurants.data)
+#     response_ratings = (supabase.table("reviews").select("*").execute())
+#     ratings_data = pd.DataFrame(response_ratings.data)
+#     ratings_data = ratings_data[['reviewerid', 'placeid', 'reviewerrated']]
+#     return data, ratings_data
+
 @st.cache_data
-def load_data_from_db():
-    response_restaurants = (supabase.table("restaurants").select("*").execute())    
-    data = pd.DataFrame(response_restaurants.data)
-    response_ratings = (supabase.table("reviews").select("*").execute())
-    ratings_data = pd.DataFrame(response_ratings.data)
-    ratings_data = ratings_data[['reviewerid', 'placeid', 'reviewerrated']]
+def load_data():
+    # Check ว่ามี directory อยู่หรือไม่ ถ้าไม่มีก็สร้างใหม่
+    """
+    output_dir = 'data'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)          
+    url = 'https://drive.google.com/uc?id=1Etnr2GZkjHlELBqUw3vN0xwxhmXnes_4'
+    output = os.path.join(output_dir, 'df_restaurants_explode.csv')
+    gdown.download(url, output, quiet=False)
+    """
+    data = pd.read_csv('.\data\df_restaurants_explode.csv', encoding='utf-8', engine='python')
+    ratings_data = data[['reviewerId', 'placeId', 'reviewerRated']]    
     return data, ratings_data
 
 # Load data
-data, ratings_data = load_data_from_db()
+#data, ratings_data = load_data_from_db()
+data, ratings_data = load_data()
 
 # Initialize session state for filters if not exists
 if 'filtered_data' not in st.session_state:
@@ -42,7 +58,7 @@ filter_tabs = st.tabs(["Restaurant Type", "Location", "Price & Rating", "Additio
 with filter_tabs[0]:
     st.subheader("Restaurant Type")
     # Get unique categories and sort them
-    categories = sorted(data['categoryname'].dropna().unique())
+    categories = sorted(data['categoryName'].dropna().unique())
     selected_categories = st.multiselect("Select Restaurant Categories:", categories)
 
 with filter_tabs[1]:
@@ -121,7 +137,7 @@ if st.button("Apply Filters"):
     
     # Apply category filter
     if selected_categories:
-        filtered = filtered[filtered['categoryname'].isin(selected_categories)]
+        filtered = filtered[filtered['categoryName'].isin(selected_categories)]
     
     # Apply city filter
     if selected_cities:
@@ -132,7 +148,7 @@ if st.button("Apply Filters"):
         filtered = filtered[filtered['price'].isin(selected_prices)]
     
     # Apply rating filter
-    filtered = filtered[(filtered['totalscore'] >= min_rating) & (filtered['totalscore'] <= max_rating)]
+    filtered = filtered[(filtered['totalScore'] >= min_rating) & (filtered['totalScore'] <= max_rating)]
     
     # Apply additional features filters
     for feature, selected in selected_features.items():
@@ -154,7 +170,7 @@ if st.button("Reset Filters"):
 # Display results
 if st.session_state.apply_filters:
     # Count restaurants after filtering
-    count = len(st.session_state.filtered_data['placeid'].unique())
+    count = len(st.session_state.filtered_data['placeId'].unique())
     
     st.subheader(f"Filtered Results: {count} Restaurants")
     
@@ -163,14 +179,14 @@ if st.session_state.apply_filters:
     else:
         # Show sample of filtered restaurants
         st.dataframe(
-            st.session_state.filtered_data[['title', 'categoryname', 'city', 'price', 'totalscore']].drop_duplicates().reset_index(drop=True),
+            st.session_state.filtered_data[['title', 'categoryName', 'city', 'price', 'totalScore']].drop_duplicates().reset_index(drop=True),
             use_container_width=True
         )
         
         # Save filtered results for use in recommendation page
         #if st.button("Use These Filters for Recommendations"):
             # Store unique place IDs of filtered restaurants
-        filtered_ids = st.session_state.filtered_data['placeid'].unique().tolist()
+        filtered_ids = st.session_state.filtered_data['placeId'].unique().tolist()
         # Save to session state for use in the recommendation page
         st.session_state.filtered_restaurant_ids = filtered_ids
         st.success(f"Filter applied! {count} restaurants will be used for recommendations on the Projects page.")

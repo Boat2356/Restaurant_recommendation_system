@@ -11,10 +11,10 @@ from supabase import create_client, Client
 #secret_data = toml.load(".\secrets.toml")
 
 # ดึง API key จากไฟล์ secret.toml
-supabase_url = st.secrets["SUPABASE_URL"]
-supabase_key = st.secrets["SUPABASE_KEY"]
+# supabase_url = st.secrets["SUPABASE_URL"]
+# supabase_key = st.secrets["SUPABASE_KEY"]
 
-supabase: Client = create_client(supabase_url, supabase_key)
+# supabase: Client = create_client(supabase_url, supabase_key)
 
 # Page setup
 st.set_page_config(
@@ -25,31 +25,62 @@ st.set_page_config(
 st.title("🍲 Choose Restaurants by Category")
 st.sidebar.success("Choose restaurants from your favorite categories")
 
+# @st.cache_data
+# def load_data_from_db():
+#     response_restaurants = (supabase.table("restaurants").select("*").execute())    
+#     data = pd.DataFrame(response_restaurants.data)
+#     response_ratings = (supabase.table("reviews").select("*").execute())
+#     ratings_data = pd.DataFrame(response_ratings.data)
+#     ratings_data = ratings_data[['reviewerid', 'placeid', 'reviewerrated']]
+#     return data, ratings_data
+
 @st.cache_data
-def load_data_from_db():
-    response_restaurants = (supabase.table("restaurants").select("*").execute())    
-    data = pd.DataFrame(response_restaurants.data)
-    response_ratings = (supabase.table("reviews").select("*").execute())
-    ratings_data = pd.DataFrame(response_ratings.data)
-    ratings_data = ratings_data[['reviewerid', 'placeid', 'reviewerrated']]
+def load_data():
+    # Check ว่ามี directory อยู่หรือไม่ ถ้าไม่มีก็สร้างใหม่
+    """
+    output_dir = 'data'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)          
+    url = 'https://drive.google.com/uc?id=1Etnr2GZkjHlELBqUw3vN0xwxhmXnes_4'
+    output = os.path.join(output_dir, 'df_restaurants_explode.csv')
+    gdown.download(url, output, quiet=False)
+    """
+    data = pd.read_csv('.\data\df_restaurants_explode.csv', encoding='utf-8', engine='python')
+    ratings_data = data[['reviewerId', 'placeId', 'reviewerRated']]    
     return data, ratings_data
 
+# @st.cache_resource
+# def load_model_from_db():
+#     bucket_name = "dumpmodel"
+#     destination_path = ".\dump_model\dump_SVD_file.pkl"
+#     with open(destination_path, "wb") as f:
+#         response = (
+#             supabase.storage
+#             .from_(bucket_name)
+#             .download("dump_model/dump_SVD_file.pkl")
+#         )
+#         f.write(response)
+#     predictions, algo = dump.load(destination_path)
+#     return predictions, algo
+
 @st.cache_resource
-def load_model_from_db():
-    bucket_name = "dumpmodel"
-    destination_path = ".\dump_model\dump_SVD_file.pkl"
-    with open(destination_path, "wb") as f:
-        response = (
-            supabase.storage
-            .from_(bucket_name)
-            .download("dump_model/dump_SVD_file.pkl")
-        )
-        f.write(response)
-    predictions, algo = dump.load(destination_path)
+def load_model():
+    # Check ว่ามี directory อยู่หรือไม่ ถ้าไม่มีก็สร้างใหม่
+    """
+    output_dir = 'dump_model'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)    
+    url = 'https://drive.google.com/uc?id=1NE4_BGxB_IZYseW8nV08j2YFowvS6l8y'
+    output = os.path.join(output_dir, 'dump_SVD_file.pkl')
+    """
+    predictions, algo = dump.load('.\dump_model\dump_SVD_file.pkl') #dump_model\dump_SVD_file.pkl
     return predictions, algo
 
-data, ratings_data = load_data_from_db()
-predictions, algo = load_model_from_db()
+# data, ratings_data = load_data_from_db()
+# predictions, algo = load_model_from_db()
+
+data, ratings_data = load_data()
+predictions, algo = load_model()
 
 # Utility function for displaying restaurant info
 def get_user_rating(restaurant_name, mode='rating', idx=None):
@@ -57,14 +88,14 @@ def get_user_rating(restaurant_name, mode='rating', idx=None):
     
     # ดึง URL รูปภาพแรก (ถ้ามี)
     image_url = None
-    if 'imageurls' in restaurant and pd.notna(restaurant['imageurls']):
-        if isinstance(restaurant['imageurls'], str):
+    if 'imageUrls' in restaurant and pd.notna(restaurant['imageUrls']):
+        if isinstance(restaurant['imageUrls'], str):
             try:
-                image_list = eval(restaurant['imageurls'])
+                image_list = eval(restaurant['imageUrls'])
             except:
                 image_list = []
         else:
-            image_list = restaurant['imageurls']
+            image_list = restaurant['imageUrls']
         
         if len(image_list) > 0:
             image_url = image_list[0]
@@ -86,10 +117,10 @@ def get_user_rating(restaurant_name, mode='rating', idx=None):
         st.markdown(f"""
         <div class="restaurant-card">
             <h3>{restaurant['title']}</h3>
-            <p>🍽️ {restaurant['categoryname']}</p>
+            <p>🍽️ {restaurant['categoryName']}</p>
             <p>💰 {restaurant['price']}</p>
             <p>📍 {restaurant['address']}</p>
-            <p>⭐ {restaurant['totalscore']:.1f}</p>
+            <p>⭐ {restaurant['totalScore']:.1f}</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -138,7 +169,7 @@ if not st.session_state.rating_completed_category and not st.session_state.selec
     st.subheader("Step 1: Select Restaurant Categories")
     
     # Get unique categories
-    categories = data['categoryname'].dropna().unique()
+    categories = data['categoryName'].dropna().unique()
     categories = sorted([cat for cat in categories if pd.notna(cat) and cat.strip() != ''])
     
     # Add 'All Categories' option
@@ -154,7 +185,7 @@ if not st.session_state.rating_completed_category and not st.session_state.selec
     # Filter restaurants based on selected categories
     filtered_data = data.copy()
     if selected_categories and 'All Categories' not in selected_categories:
-        filtered_data = data[data['categoryname'].isin(selected_categories)]
+        filtered_data = data[data['categoryName'].isin(selected_categories)]
     
     # Group restaurants by category for display
     category_restaurant_dict = {}
@@ -163,13 +194,13 @@ if not st.session_state.rating_completed_category and not st.session_state.selec
         # If 'All Categories' selected, include all categories
         for category in categories:
             if category != 'All Categories':
-                category_restaurants = filtered_data[filtered_data['categoryname'] == category]['title'].unique()
+                category_restaurants = filtered_data[filtered_data['categoryName'] == category]['title'].unique()
                 if len(category_restaurants) > 0:
                     category_restaurant_dict[category] = category_restaurants
     else:
         # Only include selected categories
         for category in selected_categories:
-            category_restaurants = filtered_data[filtered_data['categoryname'] == category]['title'].unique()
+            category_restaurants = filtered_data[filtered_data['categoryName'] == category]['title'].unique()
             if len(category_restaurants) > 0:
                 category_restaurant_dict[category] = category_restaurants
     
@@ -207,7 +238,7 @@ if not st.session_state.rating_completed_category and len(st.session_state.selec
         
         for category in selected_categories:
             # Get restaurants from each selected category
-            category_restaurants = data[data['categoryname'] == category]['title'].unique()
+            category_restaurants = data[data['categoryName'] == category]['title'].unique()
             combined_restaurants.extend(category_restaurants)  # Combine them into one list
         
         # Remove duplicates (if any) after combining
@@ -278,11 +309,11 @@ if st.session_state.rating_completed_category and st.session_state.recommendatio
         # Create new user ratings dataset
         new_user_ratings = []
         for restaurant, rating in st.session_state.ratings_by_category.items():
-            place_id = data[data['title'] == restaurant]['placeid'].iloc[0]
+            place_id = data[data['title'] == restaurant]['placeId'].iloc[0]
             new_user_ratings.append(('new_user', place_id, float(rating)))
         
         # Combine with existing ratings
-        df_combined = pd.concat([ratings_data, pd.DataFrame(new_user_ratings, columns=['reviewerid', 'placeid', 'reviewerrated'])]).reset_index(drop=True)
+        df_combined = pd.concat([ratings_data, pd.DataFrame(new_user_ratings, columns=['reviewerId', 'placeId', 'reviewerRated'])]).reset_index(drop=True)
         
         # Train model with combined data
         reader = Reader(rating_scale=(1, 5))
@@ -291,9 +322,9 @@ if st.session_state.rating_completed_category and st.session_state.recommendatio
         algo.fit(trainset_combined)
         
         # Get unrated restaurants
-        rated_place_ids = [data[data['title'] == rest]['placeid'].iloc[0] 
+        rated_place_ids = [data[data['title'] == rest]['placeId'].iloc[0] 
                           for rest in st.session_state.ratings_by_category.keys()]
-        all_restaurants = data['placeid'].unique()
+        all_restaurants = data['placeId'].unique()
         
         # Generate predictions
         predictions = []
@@ -301,7 +332,7 @@ if st.session_state.rating_completed_category and st.session_state.recommendatio
             if place_id not in rated_place_ids:
                 pred = algo.predict('new_user', place_id)
                 predictions.append({
-                    'placeid': pred.iid,
+                    'placeId': pred.iid,
                     'predicted_rating': pred.est
                 })
         
@@ -311,7 +342,7 @@ if st.session_state.rating_completed_category and st.session_state.recommendatio
             recommendations_df
             .sort_values('predicted_rating', ascending=False)
             .head(st.session_state.num_recommendations_category)
-            .merge(data, on='placeid')
+            .merge(data, on='placeId')
             .sort_values('predicted_rating', ascending=False)
             .drop_duplicates(subset=['title'])
         )
@@ -336,7 +367,7 @@ if st.session_state.rating_completed_category and not st.session_state.recommend
             st.markdown(f"""
             <div style='background-color: #f0f2f6; padding: 10px; border-radius: 5px;'>
                 <p style='color: black;'>Predicted Rating: ⭐ {row['predicted_rating']:.2f}</p>
-                <p style='color: black;'>Average Score: ⭐ {row['totalscore']:.1f}</p>
+                <p style='color: black;'>Average Score: ⭐ {row['totalScore']:.1f}</p>
             </div>
             """, unsafe_allow_html=True)
 
